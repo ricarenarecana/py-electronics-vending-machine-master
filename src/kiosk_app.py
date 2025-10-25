@@ -256,18 +256,19 @@ class KioskFrame(tk.Frame):
         self.subtitle_label.pack(side='top', anchor='w', padx=10)  # Reduced padding
 
         # Cart button on the header's right side
+        # Cart button with smaller font and adjusted padding
         cart_button = tk.Button(
             self.header,
             text="View Cart",
-            font=self.fonts['description'],
+            font=tkfont.Font(family="Helvetica", size=10),  # Smaller font
             bg=self.colors['price_fg'],
             fg=self.colors['card_bg'],
             relief='flat',
-            padx=15,
-            pady=5,
+            padx=8,   # Reduced horizontal padding
+            pady=2,   # Reduced vertical padding
             command=lambda: self.controller.show_cart()
         )
-        cart_button.pack(side='right', padx=20, pady=10)
+        cart_button.pack(side='right', padx=8, pady=4)  # Reduced outer padding
 
         # Container for the scrollable area - sits between header and footer
         scroll_container = tk.Frame(self, bg=self.colors['background'])
