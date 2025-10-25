@@ -59,12 +59,12 @@ class KioskFrame(tk.Frame):
         self.header_px = int(round(2.5 * ppi))
         self.footer_px = int(round(1.0 * ppi))
 
-        # Fonts tuned to header/footer pixel heights
-        self.fonts['machine_title'] = tkfont.Font(family="Helvetica", size=max(18, self.header_px // 6), weight="bold")
-        self.fonts['machine_subtitle'] = tkfont.Font(family="Helvetica", size=max(10, self.header_px // 12))
-        self.fonts['footer'] = tkfont.Font(family="Helvetica", size=max(10, self.footer_px // 6))
+        # Fonts tuned to header/footer pixel heights - smaller sizes for touchscreen
+        self.fonts['machine_title'] = tkfont.Font(family="Helvetica", size=max(14, self.header_px // 8), weight="bold")
+        self.fonts['machine_subtitle'] = tkfont.Font(family="Helvetica", size=max(8, self.header_px // 14))
+        self.fonts['footer'] = tkfont.Font(family="Helvetica", size=max(8, self.footer_px // 8))
         # Placeholder logo font
-        self.fonts['logo_placeholder'] = tkfont.Font(family="Helvetica", size=max(12, self.header_px // 8), weight="bold")
+        self.fonts['logo_placeholder'] = tkfont.Font(family="Helvetica", size=max(10, self.header_px // 10), weight="bold")
         # Read configurable values from controller config
         cfg = getattr(controller, 'config', {})
         self.machine_name = cfg.get('machine_name', 'RAON')
@@ -242,7 +242,7 @@ class KioskFrame(tk.Frame):
 
         # Left: logo (optional)
         left_frame = tk.Frame(self.header, bg=self.colors['background'])
-        left_frame.pack(side='left', padx=12, pady=8)
+        left_frame.pack(side='left', padx=8, pady=4)  # Reduced padding
         self.logo_label = tk.Label(left_frame, bg=self.colors['background'])
         self.logo_label.pack()
         self._load_header_logo()
@@ -251,9 +251,9 @@ class KioskFrame(tk.Frame):
         center_frame = tk.Frame(self.header, bg=self.colors['background'])
         center_frame.pack(side='left', fill='both', expand=True)
         self.title_label = tk.Label(center_frame, text=self.machine_name, font=self.fonts['machine_title'], bg=self.colors['background'], fg=self.colors['text_fg'])
-        self.title_label.pack(side='top', anchor='w', padx=20)
+        self.title_label.pack(side='top', anchor='w', padx=10)  # Reduced padding
         self.subtitle_label = tk.Label(center_frame, text=self.machine_subtitle, font=self.fonts['machine_subtitle'], bg=self.colors['background'], fg=self.colors['gray_fg'])
-        self.subtitle_label.pack(side='top', anchor='w', padx=20)
+        self.subtitle_label.pack(side='top', anchor='w', padx=10)  # Reduced padding
 
         # Cart button on the header's right side
         cart_button = tk.Button(
