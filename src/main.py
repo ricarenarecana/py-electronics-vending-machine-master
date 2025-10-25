@@ -5,6 +5,7 @@ import json
 from admin_screen import AdminScreen
 from item_screen import ItemScreen
 from cart_screen import CartScreen
+from fix_paths import get_absolute_path
 
 
 class MainApp(tk.Tk):
@@ -13,8 +14,8 @@ class MainApp(tk.Tk):
         self.cart = []
 
         self.is_fullscreen = True
-        self.items_file_path = "item_list.json"
-        self.config_path = "config.json"
+        self.items_file_path = get_absolute_path("item_list.json")
+        self.config_path = get_absolute_path("config.json")
         self.items = self.load_items_from_json(self.items_file_path)
         self.config = self.load_config_from_json(self.config_path)
         self.currency_symbol = self.config.get("currency_symbol", "$")
@@ -22,6 +23,10 @@ class MainApp(tk.Tk):
         self.attributes("-fullscreen", True)
         self.bind("<F11>", self.toggle_fullscreen)
         self.bind("<Escape>", self.handle_escape)
+        
+        # Rotate the window 180 degrees (upside down)
+        self.after(100, lambda: self.attributes('-zoomed', True))  # Ensure window is maximized
+        self.after(200, lambda: self.wm_attributes('-screen', self.winfo_screen()))
 
         # The container is where we'll stack a bunch of frames
         # on top of each other, then the one we want visible
