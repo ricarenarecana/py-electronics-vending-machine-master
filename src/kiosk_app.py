@@ -59,12 +59,12 @@ class KioskFrame(tk.Frame):
         self.header_px = int(round(2.5 * ppi))
         self.footer_px = int(round(1.0 * ppi))
 
-        # Fonts tuned to header/footer pixel heights - smaller sizes for touchscreen
-        self.fonts['machine_title'] = tkfont.Font(family="Helvetica", size=max(14, self.header_px // 8), weight="bold")
-        self.fonts['machine_subtitle'] = tkfont.Font(family="Helvetica", size=max(8, self.header_px // 14))
-        self.fonts['footer'] = tkfont.Font(family="Helvetica", size=max(8, self.footer_px // 8))
+        # Fonts tuned to header/footer pixel heights - even smaller for touchscreen
+        self.fonts['machine_title'] = tkfont.Font(family="Helvetica", size=max(12, self.header_px // 10), weight="bold")
+        self.fonts['machine_subtitle'] = tkfont.Font(family="Helvetica", size=max(7, self.header_px // 16))
+        self.fonts['footer'] = tkfont.Font(family="Helvetica", size=max(7, self.footer_px // 10))
         # Placeholder logo font
-        self.fonts['logo_placeholder'] = tkfont.Font(family="Helvetica", size=max(10, self.header_px // 10), weight="bold")
+        self.fonts['logo_placeholder'] = tkfont.Font(family="Helvetica", size=max(8, self.header_px // 12), weight="bold")
         # Read configurable values from controller config
         cfg = getattr(controller, 'config', {})
         self.machine_name = cfg.get('machine_name', 'RAON')
@@ -256,19 +256,23 @@ class KioskFrame(tk.Frame):
         self.subtitle_label.pack(side='top', anchor='w', padx=10)  # Reduced padding
 
         # Cart button on the header's right side
-        # Cart button with smaller font and adjusted padding
+        # Create a frame below header for the cart button
+        cart_frame = tk.Frame(self, bg=self.colors['background'])
+        cart_frame.pack(fill='x', pady=(0, 4))
+        
+        # Cart button in its own frame below header
         cart_button = tk.Button(
-            self.header,
+            cart_frame,
             text="View Cart",
-            font=tkfont.Font(family="Helvetica", size=10),  # Smaller font
+            font=tkfont.Font(family="Helvetica", size=10),
             bg=self.colors['price_fg'],
             fg=self.colors['card_bg'],
             relief='flat',
-            padx=8,   # Reduced horizontal padding
-            pady=2,   # Reduced vertical padding
+            padx=8,
+            pady=2,
             command=lambda: self.controller.show_cart()
         )
-        cart_button.pack(side='right', padx=8, pady=4)  # Reduced outer padding
+        cart_button.pack(side='right', padx=8, pady=2)
 
         # Container for the scrollable area - sits between header and footer
         scroll_container = tk.Frame(self, bg=self.colors['background'])
