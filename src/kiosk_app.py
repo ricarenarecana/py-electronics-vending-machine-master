@@ -336,13 +336,29 @@ class KioskFrame(tk.Frame):
                 # Fall back to textual placeholder
                 self.logo_label.config(image='', text=self.machine_name if self.machine_name else 'RAON', font=self.fonts['logo_placeholder'], fg=self.colors['text_fg'], bg=self.colors['background'], relief='groove', bd=1, padx=6, pady=4)
         else:
-            # No logo; show a textual placeholder with initials or machine name
-            placeholder_text = self.machine_name if self.machine_name else 'RAON'
-            # If machine name is long, prefer initials
-            if len(placeholder_text) > 12:
-                initials = ''.join([p[0].upper() for p in placeholder_text.split() if p])[:4]
+            # No logo; show a concise textual placeholder (initials) to avoid
+            # repeating the full machine name in the header.
+            name = self.machine_name or 'RAON'
+            # Build initials from words in the name (max 4 chars)
+            initials = ''.join([p[0].upper() for p in name.split() if p])[:4]
+            # If initials would be too short (single char) and the name is short,
+            # use up to the first 4 characters of the name instead for clarity.
+            if len(initials) == 1 and len(name) <= 4:
+                placeholder_text = name.upper()[:4]
+            else:
                 placeholder_text = initials
-            self.logo_label.config(image='', text=placeholder_text, font=self.fonts['logo_placeholder'], fg=self.colors['text_fg'], bg=self.colors['background'], relief='groove', bd=1, padx=6, pady=4)
+
+            self.logo_label.config(
+                image='',
+                text=placeholder_text,
+                font=self.fonts['logo_placeholder'],
+                fg=self.colors['text_fg'],
+                bg=self.colors['background'],
+                relief='groove',
+                bd=1,
+                padx=6,
+                pady=4,
+            )
 
     def update_kiosk_config(self):
         """Reload configuration from controller and update header/footer (can be called after saving config)."""
