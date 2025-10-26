@@ -1,11 +1,15 @@
 import tkinter as tk
 from tkinter import font as tkfont
+from tkinter import messagebox
+from payment_handler import CoinSelector
 
 
 class CartScreen(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent, bg="#f0f4f8")
         self.controller = controller
+        self.coin_selector = CoinSelector()  # Initialize coin selector
+        self.payment_in_progress = False
 
         # --- Colors and Fonts ---
         self.colors = {
@@ -212,22 +216,76 @@ class CartScreen(tk.Frame):
             text=f"Grand Total: {self.controller.currency_symbol}{grand_total:.2f}"
         )
 
-    def checkout(self):
-        print("Checkout process initiated.")
-        # The controller's handle_checkout now returns True for success, False for failure.
-        checkout_successful = self.controller.handle_checkout(self.controller.cart)
+    def handle_checkout(self):
+        """Process the checkout with coin payment."""
+        if not self.controller.cart:
+            return
 
-        if checkout_successful:
-            self.controller.clear_cart()
-            tk.messagebox.showinfo(
-                "Checkout Complete",
-                "Your purchase was successful and the cart has been cleared.",
+        # Calculate total amount needed
+        total_amount = sum(item["item"]["price"] * item["quantity"] for item in self.controller.cart)
+        
+        if not self.payment_in_progress:
+            # Start payment session
+            self.payment_in_progress = True
+            self.coin_selector.start_payment_session(total_amount)
+            
+            # Create payment status window
+            self.payment_window = tk.Toplevel(self)
+            self.payment_window.title("Payment in Progress")
+            self.payment_window.geometry("400x200")
+            
+            # Payment status label
+            self.payment_status = tk.Label(
+                self.payment_window,
+                text=f"Please insert ₱{total_amount:.2f}\nReceived: ₱0.00",
+                font=self.fonts["item_details"]
             )
-            self.controller.show_kiosk()
+            self.payment_status.pack(pady=20)
+            
+            # Update payment status periodically
+            self.update_payment_status(total_amount)
+            
         else:
-            # If checkout fails, show an error and do NOT clear the cart.
-            # The quantities have already been restored by the controller.
-            tk.messagebox.showerror(
-                "Checkout Failed",
-                "There was a problem processing your order. Please try again.",
+            # Cancel payment session
+            self.payment_in_progress = False
+            received = self.coin_selector.stop_payment_session()
+            self.payment_window.destroy()
+            
+            if received >= total_amount:
+                change = received - total_amount
+                messagebox.showinfo(
+                    "Payment Successful",
+                    f"Payment complete!\nTotal paid: ₱{received:.2f}\nChange: ₱{change:.2f}\n\nYour items will now be dispensed."
+                )
+                self.controller.clear_cart()
+                self.controller.show_frame("KioskFrame")
+            else:
+                messagebox.showerror(
+                    "Payment Incomplete",
+                    f"Payment cancelled.\nAmount received: ₱{received:.2f}\nPlease collect your money and try again."
+                )
+    
+    def update_payment_status(self, total_amount):
+        """Update the payment status window"""
+        if self.payment_in_progress:
+            received = self.coin_selector.get_current_amount()
+            remaining = total_amount - received
+            
+            status_text = (
+                f"Please insert: ₱{total_amount:.2f}\n"
+                f"Received: ₱{received:.2f}\n"
+                f"Remaining: ₱{remaining:.2f}"
             )
+            
+            self.payment_status.config(text=status_text)
+            
+            if received >= total_amount:
+                self.handle_checkout()  # Complete the payment
+            else:
+                # Update every 100ms
+                self.after(100, lambda: self.update_payment_status(total_amount))
+                
+    def on_closing(self):
+        """Handle cleanup when closing"""
+        if hasattr(self, 'coin_selector'):
+            self.coin_selector.cleanup()
