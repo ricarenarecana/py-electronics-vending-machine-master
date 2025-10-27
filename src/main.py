@@ -93,6 +93,18 @@ class MainApp(tk.Tk):
         self.is_fullscreen = not self.is_fullscreen
         self.attributes("-fullscreen", self.is_fullscreen)
 
+        # Keep window decorations hidden when in fullscreen kiosk mode
+        if self.is_fullscreen:
+            try:
+                self.overrideredirect(True)
+            except Exception:
+                pass
+        else:
+            try:
+                self.overrideredirect(False)
+            except Exception:
+                pass
+
         if self.is_fullscreen:
             # Ensure geometry is set to max for systems like RPi
             self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
@@ -110,8 +122,59 @@ class MainApp(tk.Tk):
         """Show a frame for the given page name"""
         self.active_frame_name = page_name
         frame = self.frames[page_name]
+
+        # Enter or exit kiosk fullscreen depending on the frame being shown
+        if page_name == "KioskFrame":
+            self.set_kiosk_mode(True)
+        else:
+            self.set_kiosk_mode(False)
+
         frame.event_generate("<<ShowFrame>>")
         frame.tkraise()
+
+    def set_kiosk_mode(self, enable: bool):
+        """Enable or disable kiosk mode: fullscreen and no window decorations.
+
+        When enabled the window becomes fullscreen and window manager
+        decorations (title bar) are removed. When disabled, decorations
+        are restored and fullscreen is disabled.
+        """
+        if enable:
+            self.is_fullscreen = True
+            # Try to remove window decorations first, then set fullscreen
+            try:
+                self.overrideredirect(True)
+            except Exception:
+                pass
+            try:
+                self.attributes("-fullscreen", True)
+            except Exception:
+                pass
+            # Ensure geometry covers the entire screen
+            try:
+                self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+            except Exception:
+                pass
+        else:
+            # Restore decorations and exit fullscreen
+            try:
+                self.attributes("-fullscreen", False)
+            except Exception:
+                pass
+            try:
+                self.overrideredirect(False)
+            except Exception:
+                pass
+            # Optionally set a sensible windowed geometry
+            try:
+                screen_width = self.winfo_screenwidth()
+                screen_height = self.winfo_screenheight()
+                width = screen_width // 2
+                height = screen_height
+                x = screen_width // 2
+                self.geometry(f"{width}x{height}+{x}+0")
+            except Exception:
+                pass
 
     def show_kiosk(self):
         self.frames["KioskFrame"].reset_state()
