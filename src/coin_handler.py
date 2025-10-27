@@ -4,12 +4,14 @@ from threading import Thread, Lock
 from queue import Queue
 
 class CoinAcceptor:
-    # Allan 123A-Pro coin values
+    # Allan 123A-Pro coin values matching your calibration
     COIN_VALUES = {
-        1: {'value': 1.0, 'description': '1 Peso Coin'},
-        2: {'value': 5.0, 'description': '5 Peso Coin'},
-        3: {'value': 10.0, 'description': '10 Peso Coin'},
-        4: {'value': 20.0, 'description': '20 Peso Coin'}
+        1: {'value': 1.0, 'description': 'Old 1 Peso Coin'},  # A1
+        2: {'value': 1.0, 'description': 'New 1 Peso Coin'},  # A2
+        3: {'value': 5.0, 'description': 'Old 5 Peso Coin'},  # A3
+        4: {'value': 5.0, 'description': 'New 5 Peso Coin'},  # A4
+        5: {'value': 10.0, 'description': 'Old 10 Peso Coin'}, # A5
+        6: {'value': 10.0, 'description': 'New 10 Peso Coin'}  # A6
     }
 
     def __init__(self, coin_pin=17, counter_pin=None):  # GPIO17 for coin input

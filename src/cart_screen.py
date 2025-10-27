@@ -8,9 +8,11 @@ class CartScreen(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent, bg="#f0f4f8")
         self.controller = controller
-        self.payment_handler = PaymentHandler()  # Initialize payment handler
+        self.payment_handler = PaymentHandler(coin_pin=17)  # Using GPIO17 for coin signal
         self.payment_in_progress = False
-
+        self.payment_received = 0.0
+        self.payment_required = 0.0
+        
         # --- Colors and Fonts ---
         self.colors = {
             "background": "#f0f4f8",
@@ -19,6 +21,8 @@ class CartScreen(tk.Frame):
             "border": "#dfe6e9",
             "header_bg": "#ffffff",
             "total_fg": "#27ae60",
+            "payment_bg": "#e8f5e9",
+            "payment_fg": "#2e7d32",
         }
         self.fonts = {
             "header": tkfont.Font(family="Helvetica", size=24, weight="bold"),
@@ -78,13 +82,13 @@ class CartScreen(tk.Frame):
 
         self.checkout_button = tk.Button(
             action_frame,
-            text="Checkout",
+            text="Pay with Coins",
             font=self.fonts["action_button"],
             bg=self.colors["total_fg"],
             fg=self.colors["background"],
             relief="flat",
             pady=10,
-            command=self.checkout,
+            command=self.handle_checkout,  # Using our new coin payment handler
         )
         self.checkout_button.pack(side="left", expand=True, fill="x", padx=(5, 0))
 
@@ -217,7 +221,7 @@ class CartScreen(tk.Frame):
         )
 
     def handle_checkout(self):
-        """Process the checkout with coin payment."""
+        """Process the checkout with coin payment using Allan 123A-Pro."""
         if not self.controller.cart:
             return
 
@@ -227,77 +231,156 @@ class CartScreen(tk.Frame):
         if not self.payment_in_progress:
             # Start payment session
             self.payment_in_progress = True
+            self.payment_required = total_amount
+            self.payment_received = 0.0
             self.payment_handler.start_payment_session(total_amount)
             
-            # Create payment status window
+            # Create payment status window with fixed size and position
             self.payment_window = tk.Toplevel(self)
-            self.payment_window.title("Payment in Progress")
-            self.payment_window.geometry("400x300")  # Made taller to accommodate more info
+            self.payment_window.title("Insert Coins")
+            self.payment_window.geometry("400x400")
+            self.payment_window.transient(self)  # Make it float on top
+            self.payment_window.grab_set()  # Make it modal
             
-            # Payment status label
+            # Styling
+            self.payment_window.configure(bg=self.colors["payment_bg"])
+            
+            # Amount required
+            amount_frame = tk.Frame(self.payment_window, bg=self.colors["payment_bg"])
+            amount_frame.pack(fill="x", pady=(20,0))
+            
+            tk.Label(
+                amount_frame,
+                text="Amount Required:",
+                font=self.fonts["item_details"],
+                bg=self.colors["payment_bg"],
+                fg=self.colors["text_fg"]
+            ).pack()
+            
+            tk.Label(
+                amount_frame,
+                text=f"₱{total_amount:.2f}",
+                font=self.fonts["header"],
+                bg=self.colors["payment_bg"],
+                fg=self.colors["payment_fg"]
+            ).pack()
+            
+            # Payment status
+            status_frame = tk.Frame(self.payment_window, bg=self.colors["payment_bg"])
+            status_frame.pack(fill="x", pady=20)
+            
             self.payment_status = tk.Label(
-                self.payment_window,
-                text=f"Please insert ₱{total_amount:.2f}\nAccepting coins and bills\nReceived: ₱0.00",
-                font=self.fonts["item_details"]
+                status_frame,
+                text="Received: ₱0.00\nRemaining: ₱{:.2f}".format(total_amount),
+                font=self.fonts["item_details"],
+                bg=self.colors["payment_bg"],
+                fg=self.colors["payment_fg"]
             )
-            self.payment_status.pack(pady=20)
+            self.payment_status.pack()
             
-            # Payment instructions
-            instructions = (
-                "Accepted payments:\n"
-                "Bills: ₱20, ₱50, ₱100, ₱200, ₱500, ₱1000\n"
-                "Coins: ₱1, ₱5, ₱10 (old and new)"
-            )
+            # Accepted coins info
             tk.Label(
                 self.payment_window,
-                text=instructions,
+                text="Accepted Coins:",
                 font=self.fonts["item_details"],
-                justify=tk.LEFT
-            ).pack(pady=10)
+                bg=self.colors["payment_bg"],
+                fg=self.colors["text_fg"]
+            ).pack(pady=(20,5))
             
-            # Update payment status periodically
-            self.update_payment_status(total_amount)
-            
-        else:
-            # Cancel payment session
-            self.payment_in_progress = False
-            received = self.payment_handler.stop_payment_session()
-            self.payment_window.destroy()
-            
-            if received >= total_amount:
-                change = received - total_amount
-                messagebox.showinfo(
-                    "Payment Successful",
-                    f"Payment complete!\nTotal paid: ₱{received:.2f}\nChange: ₱{change:.2f}\n\nYour items will now be dispensed."
-                )
-                self.controller.clear_cart()
-                self.controller.show_frame("KioskFrame")
-            else:
-                messagebox.showerror(
-                    "Payment Incomplete",
-                    f"Payment cancelled.\nAmount received: ₱{received:.2f}\nPlease collect your money and try again."
-                )
-    
-    def update_payment_status(self, total_amount):
-        """Update the payment status window"""
-        if self.payment_in_progress:
-            received = self.payment_handler.get_current_amount()
-            remaining = total_amount - received
-            
-            status_text = (
-                f"Please insert: ₱{total_amount:.2f}\n"
-                f"Received: ₱{received:.2f}\n"
-                f"Remaining: ₱{remaining:.2f}\n"
-                f"\nInsert coins or bills"
+            coins_text = (
+                "• ₱1 (Old and New Coins)\n"
+                "• ₱5 (Old and New Coins)\n"
+                "• ₱10 (Old and New Coins)"
             )
             
-            self.payment_status.config(text=status_text)
+            tk.Label(
+                self.payment_window,
+                text=coins_text,
+                font=self.fonts["item_details"],
+                bg=self.colors["payment_bg"],
+                fg=self.colors["text_fg"],
+                justify=tk.LEFT
+            ).pack()
             
-            if received >= total_amount:
-                self.handle_checkout()  # Complete the payment
-            else:
-                # Update every 100ms
-                self.after(100, lambda: self.update_payment_status(total_amount))
+            # Cancel button
+            tk.Button(
+                self.payment_window,
+                text="Cancel Payment",
+                font=self.fonts["item_details"],
+                command=self.cancel_payment,
+                bg="white",
+                fg="#e74c3c",
+                relief="flat"
+            ).pack(pady=20)
+            
+            # Start updating payment status
+            self.update_payment_status(total_amount)
+            
+            # Handle window close button
+            self.payment_window.protocol("WM_DELETE_WINDOW", self.cancel_payment)
+            
+        else:
+            self.complete_payment()
+    
+    def update_payment_status(self, total_amount):
+        """Update the payment status window with current coin total"""
+        if self.payment_in_progress:
+            received = self.payment_handler.get_current_amount()
+            if received != self.payment_received:  # Only update if amount changed
+                self.payment_received = received
+                remaining = total_amount - received
+                
+                status_text = (
+                    f"Received: ₱{received:.2f}\n"
+                    f"Remaining: ₱{remaining:.2f}"
+                )
+                
+                self.payment_status.config(text=status_text)
+                
+                if received >= total_amount:
+                    self.complete_payment()
+                    return
+                    
+            # Update every 100ms while payment is in progress
+            self.after(100, lambda: self.update_payment_status(total_amount))
+
+    def complete_payment(self):
+        """Complete the payment process and dispense items"""
+        if not self.payment_in_progress:
+            return
+            
+        self.payment_in_progress = False
+        received = self.payment_handler.stop_payment_session()
+        change = received - self.payment_required
+        
+        # Show success message with change amount
+        messagebox.showinfo(
+            "Payment Complete",
+            f"Thank you!\n\n"
+            f"Amount paid: ₱{received:.2f}\n"
+            f"Change due: ₱{change:.2f}\n\n"
+            f"Your items will now be dispensed."
+        )
+        
+        # Clean up and return to main screen
+        self.payment_window.destroy()
+        self.controller.clear_cart()
+        self.controller.show_frame("KioskFrame")
+        
+    def cancel_payment(self):
+        """Cancel the current payment session"""
+        if self.payment_in_progress:
+            self.payment_in_progress = False
+            received = self.payment_handler.stop_payment_session()
+            
+            if received > 0:
+                messagebox.showwarning(
+                    "Payment Cancelled",
+                    f"Payment cancelled.\n"
+                    f"Please collect your money: ₱{received:.2f}"
+                )
+            
+            self.payment_window.destroy()
                 
     def on_closing(self):
         """Handle cleanup when closing"""
