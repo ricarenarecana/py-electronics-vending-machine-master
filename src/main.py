@@ -34,21 +34,9 @@ class MainApp(tk.Tk):
             'rotate_display': rotate_disp
         }
 
-        if always_fs:
-            # Try to enforce fullscreen and remove decorations. Retry a few times
-            def ensure_fullscreen(attempts=3):
-                try:
-                    self.attributes("-fullscreen", True)
-                except Exception:
-                    pass
-                try:
-                    self.overrideredirect(True)
-                except Exception:
-                    pass
-                if attempts > 0:
-                    self.after(200, lambda: ensure_fullscreen(attempts-1))
-
-            ensure_fullscreen()
+        # Do not force fullscreen here; per-page logic in show_frame will
+        # apply fullscreen/decoration behavior so the SelectionScreen can
+        # show window controls (minimize/maximize) on startup.
 
         # Attempt display rotation if configured
         def apply_rotation(direction):
@@ -174,37 +162,25 @@ class MainApp(tk.Tk):
         # Always ensure the application is fullscreen and undecorated
         # Re-assert fullscreen according to config (allow admin decorations optionally)
         try:
-            if self._kiosk_config.get('always_fullscreen', True):
-                self.attributes("-fullscreen", True)
-        except Exception:
-            pass
-
-        try:
-            # If showing admin and decorations are allowed, restore decorations and maximize
-            if page_name == 'AdminScreen' and self._kiosk_config.get('allow_admin_decorations', False):
+            # If showing the SelectionScreen (initial menu), allow window decorations
+            # so the user can use minimize/maximize. For other screens (Kiosk/Admin/Cart/Item)
+            # enforce fullscreen and hide decorations for true kiosk behaviour.
+            if page_name == 'SelectionScreen':
                 try:
                     self.overrideredirect(False)
                 except Exception:
                     pass
-                # Exit fullscreen then attempt to maximize so title bar is visible
                 try:
                     self.attributes("-fullscreen", False)
                 except Exception:
                     pass
-                # Try to maximize / zoom the window so it fills the screen but keeps decorations
+                # Keep window resizable so minimize/maximize work normally
                 try:
-                    # Tkinter state 'zoomed' works on Windows; on X try attributes '-zoomed'
-                    self.state('zoomed')
+                    self.state('normal')
                 except Exception:
-                    try:
-                        self.attributes('-zoomed', True)
-                    except Exception:
-                        try:
-                            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
-                        except Exception:
-                            pass
+                    pass
             else:
-                # Normal kiosk behavior: hide decorations and keep fullscreen
+                # Kiosk/admin/item/cart screens: enforce fullscreen and hide decorations
                 try:
                     self.overrideredirect(True)
                 except Exception:
