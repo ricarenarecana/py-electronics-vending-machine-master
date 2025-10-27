@@ -107,20 +107,18 @@ class MainApp(tk.Tk):
 
     def toggle_fullscreen(self, event=None):
         """Toggles between fullscreen and a windowed 'half-screen' mode."""
-        self.is_fullscreen = not self.is_fullscreen
-        self.attributes("-fullscreen", self.is_fullscreen)
-
-        # Keep window decorations hidden when in fullscreen kiosk mode
-        if self.is_fullscreen:
-            try:
-                self.overrideredirect(True)
-            except Exception:
-                pass
-        else:
-            try:
-                self.overrideredirect(False)
-            except Exception:
-                pass
+        # For this build we always enforce fullscreen without decorations.
+        # Keep the previous toggle binding but make it a no-op that re-applies
+        # the enforced fullscreen state so the app remains fullscreen everywhere.
+        self.is_fullscreen = True
+        try:
+            self.attributes("-fullscreen", True)
+        except Exception:
+            pass
+        try:
+            self.overrideredirect(True)
+        except Exception:
+            pass
 
         if self.is_fullscreen:
             # Ensure geometry is set to max for systems like RPi
@@ -140,11 +138,15 @@ class MainApp(tk.Tk):
         self.active_frame_name = page_name
         frame = self.frames[page_name]
 
-        # Enter or exit kiosk fullscreen depending on the frame being shown
-        if page_name == "KioskFrame":
-            self.set_kiosk_mode(True)
-        else:
-            self.set_kiosk_mode(False)
+        # Always ensure the application is fullscreen and undecorated
+        try:
+            self.attributes("-fullscreen", True)
+        except Exception:
+            pass
+        try:
+            self.overrideredirect(True)
+        except Exception:
+            pass
 
         frame.event_generate("<<ShowFrame>>")
         frame.tkraise()
