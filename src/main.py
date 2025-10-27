@@ -180,17 +180,35 @@ class MainApp(tk.Tk):
             pass
 
         try:
-            # If showing admin and decorations are allowed, don't hide decorations
+            # If showing admin and decorations are allowed, restore decorations and maximize
             if page_name == 'AdminScreen' and self._kiosk_config.get('allow_admin_decorations', False):
-                self.overrideredirect(False)
-                # Optionally run in windowed mode so decorations are visible while still maximizing
+                try:
+                    self.overrideredirect(False)
+                except Exception:
+                    pass
+                # Exit fullscreen then attempt to maximize so title bar is visible
                 try:
                     self.attributes("-fullscreen", False)
                 except Exception:
                     pass
+                # Try to maximize / zoom the window so it fills the screen but keeps decorations
+                try:
+                    # Tkinter state 'zoomed' works on Windows; on X try attributes '-zoomed'
+                    self.state('zoomed')
+                except Exception:
+                    try:
+                        self.attributes('-zoomed', True)
+                    except Exception:
+                        try:
+                            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+                        except Exception:
+                            pass
             else:
                 # Normal kiosk behavior: hide decorations and keep fullscreen
-                self.overrideredirect(True)
+                try:
+                    self.overrideredirect(True)
+                except Exception:
+                    pass
                 if self._kiosk_config.get('always_fullscreen', True):
                     try:
                         self.attributes("-fullscreen", True)
