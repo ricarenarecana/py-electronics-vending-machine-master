@@ -23,6 +23,13 @@ class MainApp(tk.Tk):
         
         # Bind Escape globally so it works in all frames
         self.bind_all("<Escape>", self.handle_escape)
+        
+        # Special handling for Raspberry Pi
+        if platform.system() == "Linux":
+            # Ensure window can go fullscreen on Raspberry Pi
+            self.attributes('-zoomed', '1')
+            # Remove window decorations on Pi
+            self.attributes('-type', 'splash')
         self.items_file_path = get_absolute_path("item_list.json")
         self.config_path = get_absolute_path("config.json")
         self.items = self.load_items_from_json(self.items_file_path)
@@ -166,12 +173,21 @@ class MainApp(tk.Tk):
         frame = self.frames[page_name]
         self.active_frame_name = page_name
 
-        # Set window state based on the frame being shown
+        # Handle window state differently for Linux/Raspberry Pi
+        is_linux = platform.system() == "Linux"
+
         if page_name == "SelectionScreen":
             try:
-                self.overrideredirect(False)  # Show window decorations
-                self.attributes("-fullscreen", False)  # Exit fullscreen
-                self.state('normal')  # Ensure window is in normal state
+                if is_linux:
+                    # On Pi: use normal window with decorations
+                    self.attributes('-type', 'normal')
+                    self.attributes('-zoomed', '0')
+                    self.state('normal')
+                else:
+                    # On Windows: standard window control
+                    self.overrideredirect(False)
+                    self.attributes("-fullscreen", False)
+                
                 # Set a reasonable default size
                 width = min(1024, self.winfo_screenwidth() - 100)
                 height = min(768, self.winfo_screenheight() - 100)
@@ -182,24 +198,31 @@ class MainApp(tk.Tk):
                 print(f"Error setting window state: {e}")
         else:
             try:
-                # Kiosk/Admin/Cart/Item screens hide controls and go fullscreen
-                self.attributes("-fullscreen", True)
-                self.overrideredirect(True)  # Hide window decorations
-                # Ensure geometry covers the entire screen
-                self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+                if is_linux:
+                    # On Pi: use splash window type and zoomed state
+                    self.attributes('-type', 'splash')
+                    self.attributes('-zoomed', '1')
+                    # Force fullscreen size
+                    self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+                else:
+                    # On Windows: use standard fullscreen
+                    self.attributes("-fullscreen", True)
+                    self.overrideredirect(True)
+                    self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
             except Exception as e:
                 print(f"Error setting fullscreen: {e}")
 
         # Raise the frame and ensure it has focus
         frame.tkraise()
         self.update_idletasks()  # Process any pending window manager tasks
-        try:
-            self.focus_force()  # Force focus back to main window for key bindings
-        except Exception:
+        
+        # Multiple focus attempts for reliable key handling
+        for focus_method in [self.focus_force, self.focus_set, frame.focus_set]:
             try:
-                self.focus_set()  # Fallback focus method
-            except Exception as e:
-                print(f"Error setting focus: {e}")
+                focus_method()
+                break
+            except Exception:
+                continue
 
         frame.event_generate("<<ShowFrame>>")
         frame.tkraise()
@@ -407,23 +430,14 @@ class MainApp(tk.Tk):
         
         if self.grab_current():
             return
-            
+
         # From Item/Cart screens, go back to Kiosk
         if self.active_frame_name in ["ItemScreen", "CartScreen"]:
             self.show_kiosk()  # Use show_kiosk instead of show_frame
         # From Kiosk/Admin go back to Selection
         elif self.active_frame_name in ["KioskFrame", "AdminScreen"]:
-            # Ensure we properly reset to Selection with window controls
+            # Handle window state in show_frame
             self.show_frame("SelectionScreen")
-            self.overrideredirect(False)
-            self.attributes("-fullscreen", False)
-            self.state('normal')
-            # Set a reasonable size
-            width = min(1024, self.winfo_screenwidth() - 100)
-            height = min(768, self.winfo_screenheight() - 100)
-            x = (self.winfo_screenwidth() - width) // 2
-            y = (self.winfo_screenheight() - height) // 2
-            self.geometry(f"{width}x{height}+{x}+{y}")
         else:
             self.destroy()
 
