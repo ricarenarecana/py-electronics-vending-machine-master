@@ -6,5 +6,8 @@
     ],
     "machine_name": "RAON",
     "machine_subtitle": "Rapid Access Outlet for Electronic Necessities",
-    "header_logo_path": ""
+    "header_logo_path": "",
+    "always_fullscreen": true,
+    "allow_decorations_for_admin": false,
+    "rotate_display": "right"  
 }

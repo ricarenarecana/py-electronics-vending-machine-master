@@ -23,16 +23,49 @@ class MainApp(tk.Tk):
         self.config = self.load_config_from_json(self.config_path)
         self.currency_symbol = self.config.get("currency_symbol", "$")
         self.title("Vending Machine UI")
-        # Force fullscreen and hide window decorations for kiosk operation
-        try:
-            self.attributes("-fullscreen", True)
-        except Exception:
-            pass
-        try:
-            # Remove window decorations (title bar / tabs)
-            self.overrideredirect(True)
-        except Exception:
-            pass
+        # Apply fullscreen and rotation according to config
+        always_fs = bool(self.config.get('always_fullscreen', True))
+        allow_admin_deco = bool(self.config.get('allow_decorations_for_admin', False))
+        rotate_disp = str(self.config.get('rotate_display', 'right'))
+
+        self._kiosk_config = {
+            'always_fullscreen': always_fs,
+            'allow_admin_decorations': allow_admin_deco,
+            'rotate_display': rotate_disp
+        }
+
+        if always_fs:
+            # Try to enforce fullscreen and remove decorations. Retry a few times
+            def ensure_fullscreen(attempts=3):
+                try:
+                    self.attributes("-fullscreen", True)
+                except Exception:
+                    pass
+                try:
+                    self.overrideredirect(True)
+                except Exception:
+                    pass
+                if attempts > 0:
+                    self.after(200, lambda: ensure_fullscreen(attempts-1))
+
+            ensure_fullscreen()
+
+        # Attempt display rotation if configured
+        def apply_rotation(direction):
+            valid = {'normal': 'normal', 'right': 'right', 'left': 'left', 'inverted': 'inverted'}
+            d = valid.get(direction, None)
+            if not d:
+                return
+            try:
+                if platform.system() == "Linux" and os.getenv("DISPLAY"):
+                    # Use xrandr to rotate screen (non-persistent)
+                    subprocess.run(["xrandr", "-o", d], check=False)
+            except Exception as e:
+                print(f"Rotation failed: {e}")
+
+        if rotate_disp:
+            # schedule shortly after startup so X is ready
+            self.after(300, lambda: apply_rotation(rotate_disp))
         self.bind("<F11>", self.toggle_fullscreen)
         self.bind("<Escape>", self.handle_escape)
         
@@ -139,12 +172,30 @@ class MainApp(tk.Tk):
         frame = self.frames[page_name]
 
         # Always ensure the application is fullscreen and undecorated
+        # Re-assert fullscreen according to config (allow admin decorations optionally)
         try:
-            self.attributes("-fullscreen", True)
+            if self._kiosk_config.get('always_fullscreen', True):
+                self.attributes("-fullscreen", True)
         except Exception:
             pass
+
         try:
-            self.overrideredirect(True)
+            # If showing admin and decorations are allowed, don't hide decorations
+            if page_name == 'AdminScreen' and self._kiosk_config.get('allow_admin_decorations', False):
+                self.overrideredirect(False)
+                # Optionally run in windowed mode so decorations are visible while still maximizing
+                try:
+                    self.attributes("-fullscreen", False)
+                except Exception:
+                    pass
+            else:
+                # Normal kiosk behavior: hide decorations and keep fullscreen
+                self.overrideredirect(True)
+                if self._kiosk_config.get('always_fullscreen', True):
+                    try:
+                        self.attributes("-fullscreen", True)
+                    except Exception:
+                        pass
         except Exception:
             pass
 
