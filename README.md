@@ -138,3 +138,28 @@ Safety
 - Always disconnect power before changing wiring.
 - Avoid connecting 12V directly to any Raspberry Pi pin — only connect the acceptor's COIN signal and common GND to the Pi.
 
+## Kiosk fullscreen & rotation configuration
+
+New configuration options were added to `config.json` to control kiosk behaviour at startup:
+
+- `always_fullscreen` (boolean, default: true)
+  - If true, the app will try to force fullscreen (and hide window decorations) on startup and whenever frames are shown.
+  - If false, the app will not force fullscreen; you can manage windowed/fullscreen yourself.
+
+- `allow_decorations_for_admin` (boolean, default: false)
+  - If true, when you open the Admin screen, the app will temporarily restore window decorations so you can use title-bar window controls for maintenance.
+
+- `rotate_display` (string, one of: `normal`, `right`, `left`, `inverted`, default: `right`)
+  - When running under X on Linux (DISPLAY set), the app will attempt to rotate the screen using `xrandr -o <direction>` shortly after startup.
+  - This rotation is non-persistent and will be lost on reboot. If you want persistent rotation on Raspberry Pi, edit `/boot/config.txt` and set `display_rotate` or use a suitable `dtoverlay`.
+
+Example `config.json` snippet:
+
+```json
+  "always_fullscreen": true,
+  "allow_decorations_for_admin": false,
+  "rotate_display": "right"
+```
+
+If you're unable to put the app into fullscreen on startup (platform-dependent), try setting `always_fullscreen` to `false` and then enter fullscreen manually, or run the app under an X session where `xrandr` is available.
+
