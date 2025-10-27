@@ -20,6 +20,9 @@ class MainApp(tk.Tk):
         self.is_fullscreen = False
         # Set window title
         self.title("RAON Vending Machine")
+        
+        # Bind Escape globally so it works in all frames
+        self.bind_all("<Escape>", self.handle_escape)
         self.items_file_path = get_absolute_path("item_list.json")
         self.config_path = get_absolute_path("config.json")
         self.items = self.load_items_from_json(self.items_file_path)
@@ -160,12 +163,12 @@ class MainApp(tk.Tk):
 
     def show_frame(self, page_name):
         """Show a frame for the given page name"""
-        self.active_frame_name = page_name
         frame = self.frames[page_name]
+        self.active_frame_name = page_name
 
-        try:
-            # SelectionScreen shows window controls
-            if page_name == "SelectionScreen":
+        # Set window state based on the frame being shown
+        if page_name == "SelectionScreen":
+            try:
                 self.overrideredirect(False)  # Show window decorations
                 self.attributes("-fullscreen", False)  # Exit fullscreen
                 self.state('normal')  # Ensure window is in normal state
@@ -175,14 +178,28 @@ class MainApp(tk.Tk):
                 x = (self.winfo_screenwidth() - width) // 2
                 y = (self.winfo_screenheight() - height) // 2
                 self.geometry(f"{width}x{height}+{x}+{y}")
-            else:
+            except Exception as e:
+                print(f"Error setting window state: {e}")
+        else:
+            try:
                 # Kiosk/Admin/Cart/Item screens hide controls and go fullscreen
                 self.attributes("-fullscreen", True)
                 self.overrideredirect(True)  # Hide window decorations
                 # Ensure geometry covers the entire screen
                 self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+            except Exception as e:
+                print(f"Error setting fullscreen: {e}")
+
+        # Raise the frame and ensure it has focus
+        frame.tkraise()
+        self.update_idletasks()  # Process any pending window manager tasks
+        try:
+            self.focus_force()  # Force focus back to main window for key bindings
         except Exception:
-            pass
+            try:
+                self.focus_set()  # Fallback focus method
+            except Exception as e:
+                print(f"Error setting focus: {e}")
 
         frame.event_generate("<<ShowFrame>>")
         frame.tkraise()
@@ -242,8 +259,12 @@ class MainApp(tk.Tk):
     def show_kiosk(self):
         """Show the kiosk interface and reset its state."""
         self.frames["KioskFrame"].reset_state()
-        self.active_frame_name = "KioskFrame"  # Ensure frame tracking is updated
+        # First update the frame name
+        self.active_frame_name = "KioskFrame"
+        # Then show the frame (which will make it fullscreen)
         self.show_frame("KioskFrame")
+        # Force focus back to main window for key bindings
+        self.focus_force()
 
     def show_item(self, item_data):
         """Passes item data to the ItemScreen and displays it."""
@@ -382,14 +403,27 @@ class MainApp(tk.Tk):
 
     def handle_escape(self, event=None):
         """Handle Escape key press for navigation."""
+        print(f"Escape pressed in frame: {self.active_frame_name}")  # Debug print
+        
         if self.grab_current():
             return
-        # Item/Cart screens go back to Kiosk
+            
+        # From Item/Cart screens, go back to Kiosk
         if self.active_frame_name in ["ItemScreen", "CartScreen"]:
-            self.show_frame("KioskFrame")
-        # Kiosk/Admin go back to Selection
+            self.show_kiosk()  # Use show_kiosk instead of show_frame
+        # From Kiosk/Admin go back to Selection
         elif self.active_frame_name in ["KioskFrame", "AdminScreen"]:
+            # Ensure we properly reset to Selection with window controls
             self.show_frame("SelectionScreen")
+            self.overrideredirect(False)
+            self.attributes("-fullscreen", False)
+            self.state('normal')
+            # Set a reasonable size
+            width = min(1024, self.winfo_screenwidth() - 100)
+            height = min(768, self.winfo_screenheight() - 100)
+            x = (self.winfo_screenwidth() - width) // 2
+            y = (self.winfo_screenheight() - height) // 2
+            self.geometry(f"{width}x{height}+{x}+{y}")
         else:
             self.destroy()
 
