@@ -1,1 +1,2 @@
 Pillow
+RPi.GPIO>=0.7.0  # Required for hardware interface

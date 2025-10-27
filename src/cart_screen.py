@@ -1,14 +1,14 @@
 import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import messagebox
-from payment_handler import CoinSelector
+from payment_handler import PaymentHandler
 
 
 class CartScreen(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent, bg="#f0f4f8")
         self.controller = controller
-        self.coin_selector = CoinSelector()  # Initialize coin selector
+        self.payment_handler = PaymentHandler()  # Initialize payment handler
         self.payment_in_progress = False
 
         # --- Colors and Fonts ---
@@ -227,20 +227,33 @@ class CartScreen(tk.Frame):
         if not self.payment_in_progress:
             # Start payment session
             self.payment_in_progress = True
-            self.coin_selector.start_payment_session(total_amount)
+            self.payment_handler.start_payment_session(total_amount)
             
             # Create payment status window
             self.payment_window = tk.Toplevel(self)
             self.payment_window.title("Payment in Progress")
-            self.payment_window.geometry("400x200")
+            self.payment_window.geometry("400x300")  # Made taller to accommodate more info
             
             # Payment status label
             self.payment_status = tk.Label(
                 self.payment_window,
-                text=f"Please insert ₱{total_amount:.2f}\nReceived: ₱0.00",
+                text=f"Please insert ₱{total_amount:.2f}\nAccepting coins and bills\nReceived: ₱0.00",
                 font=self.fonts["item_details"]
             )
             self.payment_status.pack(pady=20)
+            
+            # Payment instructions
+            instructions = (
+                "Accepted payments:\n"
+                "Bills: ₱20, ₱50, ₱100, ₱200, ₱500, ₱1000\n"
+                "Coins: ₱1, ₱5, ₱10 (old and new)"
+            )
+            tk.Label(
+                self.payment_window,
+                text=instructions,
+                font=self.fonts["item_details"],
+                justify=tk.LEFT
+            ).pack(pady=10)
             
             # Update payment status periodically
             self.update_payment_status(total_amount)
@@ -248,7 +261,7 @@ class CartScreen(tk.Frame):
         else:
             # Cancel payment session
             self.payment_in_progress = False
-            received = self.coin_selector.stop_payment_session()
+            received = self.payment_handler.stop_payment_session()
             self.payment_window.destroy()
             
             if received >= total_amount:
@@ -268,13 +281,14 @@ class CartScreen(tk.Frame):
     def update_payment_status(self, total_amount):
         """Update the payment status window"""
         if self.payment_in_progress:
-            received = self.coin_selector.get_current_amount()
+            received = self.payment_handler.get_current_amount()
             remaining = total_amount - received
             
             status_text = (
                 f"Please insert: ₱{total_amount:.2f}\n"
                 f"Received: ₱{received:.2f}\n"
-                f"Remaining: ₱{remaining:.2f}"
+                f"Remaining: ₱{remaining:.2f}\n"
+                f"\nInsert coins or bills"
             )
             
             self.payment_status.config(text=status_text)
@@ -287,5 +301,5 @@ class CartScreen(tk.Frame):
                 
     def on_closing(self):
         """Handle cleanup when closing"""
-        if hasattr(self, 'coin_selector'):
-            self.coin_selector.cleanup()
+        if hasattr(self, 'payment_handler'):
+            self.payment_handler.cleanup()
