@@ -1,4 +1,8 @@
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except Exception:
+    # Not running on Raspberry Pi / RPi.GPIO unavailable — use a local mock so the UI can run
+    import rpi_gpio_mock as GPIO
 import time
 from threading import Thread, Lock
 from queue import Queue
