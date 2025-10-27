@@ -6,6 +6,9 @@ from admin_screen import AdminScreen
 from item_screen import ItemScreen
 from cart_screen import CartScreen
 from fix_paths import get_absolute_path
+import subprocess
+import platform
+import os
 
 
 class MainApp(tk.Tk):
@@ -20,13 +23,27 @@ class MainApp(tk.Tk):
         self.config = self.load_config_from_json(self.config_path)
         self.currency_symbol = self.config.get("currency_symbol", "$")
         self.title("Vending Machine UI")
-        self.attributes("-fullscreen", True)
+        # Force fullscreen and hide window decorations for kiosk operation
+        try:
+            self.attributes("-fullscreen", True)
+        except Exception:
+            pass
+        try:
+            # Remove window decorations (title bar / tabs)
+            self.overrideredirect(True)
+        except Exception:
+            pass
         self.bind("<F11>", self.toggle_fullscreen)
         self.bind("<Escape>", self.handle_escape)
         
-        # Rotate the window 180 degrees (upside down)
-        self.after(100, lambda: self.attributes('-zoomed', True))  # Ensure window is maximized
-        self.after(200, lambda: self.wm_attributes('-screen', self.winfo_screen()))
+        # Attempt to rotate the display 90 degrees to the right (if running under X on Linux).
+        # This uses `xrandr -o right` and will only run when a DISPLAY is available.
+        try:
+            if platform.system() == "Linux" and os.getenv("DISPLAY"):
+                # Run after a short delay so X is ready
+                self.after(200, lambda: subprocess.run(["xrandr", "-o", "right"]))
+        except Exception as e:
+            print(f"Display rotation request failed: {e}")
 
         # The container is where we'll stack a bunch of frames
         # on top of each other, then the one we want visible
