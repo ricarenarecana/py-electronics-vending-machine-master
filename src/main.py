@@ -170,37 +170,15 @@ class MainApp(tk.Tk):
         self.active_frame_name = page_name
         frame = self.frames[page_name]
 
-        # Always ensure the application is fullscreen and undecorated
-        # Re-assert fullscreen according to config (allow admin decorations optionally)
+        # Always ensure the application is fullscreen
         try:
-            # If showing the SelectionScreen (initial menu), allow window decorations
-            # so the user can use minimize/maximize. For other screens (Kiosk/Admin/Cart/Item)
-            # enforce fullscreen and hide decorations for true kiosk behaviour.
-            if page_name == 'SelectionScreen':
-                try:
-                    self.overrideredirect(False)
-                except Exception:
-                    pass
-                try:
-                    self.attributes("-fullscreen", False)
-                except Exception:
-                    pass
-                # Keep window resizable so minimize/maximize work normally
-                try:
-                    self.state('normal')
-                except Exception:
-                    pass
-            else:
-                # Kiosk/admin/item/cart screens: enforce fullscreen and hide decorations
-                try:
-                    self.overrideredirect(True)
-                except Exception:
-                    pass
-                if self._kiosk_config.get('always_fullscreen', True):
-                    try:
-                        self.attributes("-fullscreen", True)
-                    except Exception:
-                        pass
+            self.attributes("-fullscreen", True)
+        except Exception:
+            pass
+        try:
+            self.overrideredirect(True)
+        except Exception:
+            pass
         except Exception:
             pass
 
@@ -401,23 +379,15 @@ class MainApp(tk.Tk):
         self.show_frame("AdminScreen")
 
     def handle_escape(self, event=None):
+        """Handle Escape key press for navigation."""
         if self.grab_current():
             return
-        # From Item/Cart screens, go back to Kiosk
-        elif self.active_frame_name in ["ItemScreen", "CartScreen"]:
+        # Item/Cart screens go back to Kiosk
+        if self.active_frame_name in ["ItemScreen", "CartScreen"]:
             self.show_frame("KioskFrame")
-        # From Kiosk/Admin/other screens, go back to Selection
-        elif self.active_frame_name in ["KioskFrame", "AdminScreen"] or (
-            self.active_frame_name and self.active_frame_name != "SelectionScreen"
-        ):
+        # Kiosk/Admin go back to Selection
+        elif self.active_frame_name in ["KioskFrame", "AdminScreen"]:
             self.show_frame("SelectionScreen")
-            # Re-enable window decorations for SelectionScreen
-            try:
-                self.overrideredirect(False)
-                self.attributes("-fullscreen", False)
-                self.state('normal')
-            except Exception:
-                pass
         else:
             self.destroy()
 

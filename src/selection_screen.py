@@ -6,8 +6,12 @@ class SelectionScreen(tk.Frame):
         tk.Frame.__init__(self, parent, bg='#f0f4f8') # Light background
         self.controller = controller
 
-        title_font = tkfont.Font(family="Helvetica", size=36, weight="bold")
-        button_font = tkfont.Font(family="Helvetica", size=22, weight="bold")
+        # Get screen dimensions for proportional sizing
+        screen_height = self.winfo_screenheight()
+        title_size = int(screen_height * 0.04)  # 4% of screen height
+        button_size = int(screen_height * 0.025)  # 2.5% of screen height
+        title_font = tkfont.Font(family="Helvetica", size=title_size, weight="bold")
+        button_font = tkfont.Font(family="Helvetica", size=button_size, weight="bold")
 
         label = tk.Label(
             self, 
@@ -16,7 +20,8 @@ class SelectionScreen(tk.Frame):
             bg='#f0f4f8',
             fg='#2c3e50' # Dark text
         )
-        label.pack(side="top", fill="x", pady=(100, 50))
+        # Header at 1.5 inches (assuming ~96 DPI, so ~144 pixels)
+        label.pack(side="top", fill="x", pady=(144, 50))
 
         kiosk_button = tk.Button(
             self, 
