@@ -84,3 +84,57 @@ You can configure the physical diagonal and the footer text in `config.json`:
 Edit `config.json` and restart the app to see changes appear in kiosk mode.
 
 Alternatively you can edit these values from inside the app: open the **Admin** screen and click **Kiosk Config**. From there you can change the machine name, subtitle, choose a header logo image, set the display diagonal (in inches), and edit the list of group members. Saving writes `config.json` and updates the kiosk header/footer immediately.
+
+## Coin acceptor (Allan Universal 123A-Pro) — wiring & testing
+
+This project includes support for coin acceptors. If you're using the Allan Universal 123A-Pro model (the one with 4 pins: `12VDC`, `COIN`, `GND`, and `COUNTER`) follow the wiring and test instructions below.
+
+Parts you'll need
+- Raspberry Pi (any model with 40-pin GPIO header)
+- Allan Universal 123A-Pro coin acceptor
+- 12V DC power supply (capable of at least 1 A)
+- Jumper wires (male/female as needed)
+- Common ground between Pi and coin acceptor (connect coin acceptor GND to Pi GND)
+- Optional: small breadboard for tidy wiring
+
+Wiring (pin names on Allan 123A-Pro -> Raspberry Pi / power)
+
+ - 12VDC (Allan)  ->  12V power supply positive (+)
+ - GND (Allan)    ->  12V power supply negative (-) AND Raspberry Pi GND (any GND pin, e.g., Pin 6)
+ - COIN (Allan)   ->  Raspberry Pi GPIO17 (BCM 17, physical Pin 11)
+ - COUNTER (Allan)->  Optional (not required for basic operation)
+
+Notes:
+- Do not power the Allan coin acceptor from the Raspberry Pi 5V or 3.3V rails — it requires 12V.
+- The COIN output from Allan is suitable to connect directly to a Pi GPIO (the acceptor provides a pulled-up/pulled-down signal and internal isolation). Always confirm your model's documentation first.
+
+Programming the Allan 123A-Pro
+
+1. Power the coin acceptor (12V and GND connected).
+2. Locate the programming button on the coin acceptor (refer to the acceptor's manual).
+3. Enter programming mode (usually press-and-hold the programming button until the LED blinks).
+4. For each denomination you want the acceptor to recognise, insert the coin several times as required by the acceptor (many acceptors want 3–10 samples per coin type).
+5. Press the programming button to move to the next coin type.
+6. Save and exit programming mode (typically press-and-hold or follow manufacturer instructions).
+
+Testing with this project
+
+1. Place the Raspberry Pi and coin acceptor wiring as described above.
+2. From the project root on the Raspberry Pi, run the test script:
+
+```sh
+python src/test_coin_acceptor.py
+```
+
+3. Insert coins. The test program will print the received amount each time a coin is detected.
+
+Integration notes
+
+- The code includes `src/coin_handler.py` (Allan 123A-Pro specific) and a `PaymentHandler` wrapper in `src/payment_handler.py` that uses both the coin and bill acceptors. `PaymentHandler.get_current_amount()` returns the sum of coins and bills received.
+- If you plan to use the bill acceptor as well, wire its signal to the `bill_pin` configured in `payment_handler.py` (default BCM 27 / physical pin 13).
+
+Safety
+
+- Always disconnect power before changing wiring.
+- Avoid connecting 12V directly to any Raspberry Pi pin — only connect the acceptor's COIN signal and common GND to the Pi.
+
