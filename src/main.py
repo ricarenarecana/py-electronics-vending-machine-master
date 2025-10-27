@@ -260,7 +260,9 @@ class MainApp(tk.Tk):
                 pass
 
     def show_kiosk(self):
+        """Show the kiosk interface and reset its state."""
         self.frames["KioskFrame"].reset_state()
+        self.active_frame_name = "KioskFrame"  # Ensure frame tracking is updated
         self.show_frame("KioskFrame")
 
     def show_item(self, item_data):
@@ -404,9 +406,18 @@ class MainApp(tk.Tk):
         # From Item/Cart screens, go back to Kiosk
         elif self.active_frame_name in ["ItemScreen", "CartScreen"]:
             self.show_frame("KioskFrame")
-        # From Kiosk or any other non-Selection screen, go back to Selection
-        elif self.active_frame_name in ["KioskFrame", "AdminScreen"] or self.active_frame_name != "SelectionScreen":
+        # From Kiosk/Admin/other screens, go back to Selection
+        elif self.active_frame_name in ["KioskFrame", "AdminScreen"] or (
+            self.active_frame_name and self.active_frame_name != "SelectionScreen"
+        ):
             self.show_frame("SelectionScreen")
+            # Re-enable window decorations for SelectionScreen
+            try:
+                self.overrideredirect(False)
+                self.attributes("-fullscreen", False)
+                self.state('normal')
+            except Exception:
+                pass
         else:
             self.destroy()
 

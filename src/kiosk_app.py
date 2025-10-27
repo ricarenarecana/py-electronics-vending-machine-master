@@ -55,12 +55,12 @@ class KioskFrame(tk.Frame):
             # Fallback to a reasonable default PPI
             ppi = 165.68
 
-        # Pixel heights for header/footer based on requested inches
-        self.header_px = int(round(2.5 * ppi))
-        self.footer_px = int(round(1.0 * ppi))
+        # Pixel heights for header/footer based on requested inches (1.5" header, 0.5" footer)
+        self.header_px = int(round(1.5 * ppi))
+        self.footer_px = int(round(0.5 * ppi))
 
-        # Fonts tuned to header/footer pixel heights - even smaller for touchscreen
-        self.fonts['machine_title'] = tkfont.Font(family="Helvetica", size=max(12, self.header_px // 10), weight="bold")
+        # Fonts tuned to header/footer pixel heights - scaled for smaller header/footer
+        self.fonts['machine_title'] = tkfont.Font(family="Helvetica", size=max(12, self.header_px // 8), weight="bold")
         self.fonts['machine_subtitle'] = tkfont.Font(family="Helvetica", size=max(7, self.header_px // 16))
         self.fonts['footer'] = tkfont.Font(family="Helvetica", size=max(7, self.footer_px // 10))
         # Placeholder logo font
