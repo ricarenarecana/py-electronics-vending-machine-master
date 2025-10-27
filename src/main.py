@@ -16,7 +16,10 @@ class MainApp(tk.Tk):
         tk.Tk.__init__(self, *args, **kwargs)
         self.cart = []
 
-        self.is_fullscreen = True
+        # Start in windowed mode for SelectionScreen
+        self.is_fullscreen = False
+        # Set window title
+        self.title("RAON Vending Machine")
         self.items_file_path = get_absolute_path("item_list.json")
         self.config_path = get_absolute_path("config.json")
         self.items = self.load_items_from_json(self.items_file_path)
@@ -138,47 +141,46 @@ class MainApp(tk.Tk):
             json.dump(self.items, file, indent=4)
 
     def toggle_fullscreen(self, event=None):
-        """Toggles between fullscreen and a windowed 'half-screen' mode."""
-        # For this build we always enforce fullscreen without decorations.
-        # Keep the previous toggle binding but make it a no-op that re-applies
-        # the enforced fullscreen state so the app remains fullscreen everywhere.
-        self.is_fullscreen = True
-        try:
-            self.attributes("-fullscreen", True)
-        except Exception:
-            pass
-        try:
-            self.overrideredirect(True)
-        except Exception:
-            pass
-
-        if self.is_fullscreen:
-            # Ensure geometry is set to max for systems like RPi
-            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
-
-        if not self.is_fullscreen:
-            # When exiting fullscreen, set a specific size and position
-            screen_width = self.winfo_screenwidth()
-            screen_height = self.winfo_screenheight()
-            width = screen_width // 2
-            height = screen_height
-            x = screen_width // 2
-            self.geometry(f"{width}x{height}+{x}+0")
+        """Toggles fullscreen mode for the SelectionScreen."""
+        if self.active_frame_name == "SelectionScreen":
+            self.is_fullscreen = not self.is_fullscreen
+            if self.is_fullscreen:
+                self.attributes("-fullscreen", True)
+                self.overrideredirect(True)
+            else:
+                self.attributes("-fullscreen", False)
+                self.overrideredirect(False)
+                self.state('normal')
+                # Set a reasonable default size
+                width = min(1024, self.winfo_screenwidth() - 100)
+                height = min(768, self.winfo_screenheight() - 100)
+                x = (self.winfo_screenwidth() - width) // 2
+                y = (self.winfo_screenheight() - height) // 2
+                self.geometry(f"{width}x{height}+{x}+{y}")
 
     def show_frame(self, page_name):
         """Show a frame for the given page name"""
         self.active_frame_name = page_name
         frame = self.frames[page_name]
 
-        # Always ensure the application is fullscreen
         try:
-            self.attributes("-fullscreen", True)
-        except Exception:
-            pass
-        try:
-            self.overrideredirect(True)
-        except Exception:
-            pass
+            # SelectionScreen shows window controls
+            if page_name == "SelectionScreen":
+                self.overrideredirect(False)  # Show window decorations
+                self.attributes("-fullscreen", False)  # Exit fullscreen
+                self.state('normal')  # Ensure window is in normal state
+                # Set a reasonable default size
+                width = min(1024, self.winfo_screenwidth() - 100)
+                height = min(768, self.winfo_screenheight() - 100)
+                x = (self.winfo_screenwidth() - width) // 2
+                y = (self.winfo_screenheight() - height) // 2
+                self.geometry(f"{width}x{height}+{x}+{y}")
+            else:
+                # Kiosk/Admin/Cart/Item screens hide controls and go fullscreen
+                self.attributes("-fullscreen", True)
+                self.overrideredirect(True)  # Hide window decorations
+                # Ensure geometry covers the entire screen
+                self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
         except Exception:
             pass
 
