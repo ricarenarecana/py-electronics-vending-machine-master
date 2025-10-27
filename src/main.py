@@ -54,9 +54,20 @@ class MainApp(tk.Tk):
         if rotate_disp:
             # schedule shortly after startup so X is ready
             self.after(300, lambda: apply_rotation(rotate_disp))
-        self.bind("<F11>", self.toggle_fullscreen)
-        self.bind("<Escape>", self.handle_escape)
-        
+
+        # Bind keys on the root window so they work regardless of focus.
+        # F11 is kept as a no-op toggle that re-applies fullscreen state.
+        try:
+            self.bind("<F11>", self.toggle_fullscreen)
+        except Exception:
+            pass
+
+        # Bind Escape globally so it works even when the window is undecorated
+        # or when focus shifts to child widgets or modal dialogs.
+        try:
+            self.bind_all("<Escape>", self.handle_escape)
+        except Exception:
+            pass
         # Attempt to rotate the display 90 degrees to the right (if running under X on Linux).
         # This uses `xrandr -o right` and will only run when a DISPLAY is available.
         try:
@@ -195,6 +206,14 @@ class MainApp(tk.Tk):
 
         frame.event_generate("<<ShowFrame>>")
         frame.tkraise()
+        # Force focus back to the main window so global bindings (Escape) are received
+        try:
+            self.focus_force()
+        except Exception:
+            try:
+                self.focus_set()
+            except Exception:
+                pass
 
     def set_kiosk_mode(self, enable: bool):
         """Enable or disable kiosk mode: fullscreen and no window decorations.
