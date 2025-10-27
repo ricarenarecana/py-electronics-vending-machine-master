@@ -401,11 +401,11 @@ class MainApp(tk.Tk):
     def handle_escape(self, event=None):
         if self.grab_current():
             return
-        elif self.active_frame_name == "ItemScreen":
+        # From Item/Cart screens, go back to Kiosk
+        elif self.active_frame_name in ["ItemScreen", "CartScreen"]:
             self.show_frame("KioskFrame")
-        elif self.active_frame_name == "CartScreen":
-            self.show_frame("KioskFrame")
-        elif self.active_frame_name != "SelectionScreen":
+        # From Kiosk or any other non-Selection screen, go back to Selection
+        elif self.active_frame_name in ["KioskFrame", "AdminScreen"] or self.active_frame_name != "SelectionScreen":
             self.show_frame("SelectionScreen")
         else:
             self.destroy()
