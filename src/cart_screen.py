@@ -8,10 +8,12 @@ class CartScreen(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent, bg="#f0f4f8")
         self.controller = controller
-        self.payment_handler = PaymentHandler(coin_pin=17)  # Using GPIO17 for coin signal
+        # Initialize payment handler with coin hoppers from config
+        self.payment_handler = PaymentHandler(controller.config, coin_pin=17)  # Using GPIO17 for coin signal
         self.payment_in_progress = False
         self.payment_received = 0.0
         self.payment_required = 0.0
+        self.change_label = None  # Will be created in the payment window
         
         # --- Colors and Fonts ---
         self.colors = {
@@ -278,6 +280,16 @@ class CartScreen(tk.Frame):
             )
             self.payment_status.pack()
             
+            # Change status (initially hidden)
+            self.change_label = tk.Label(
+                status_frame,
+                text="",
+                font=self.fonts["item_details"],
+                bg=self.colors["payment_bg"],
+                fg=self.colors["payment_fg"]
+            )
+            self.change_label.pack_forget()  # Hidden until change is dispensed
+            
             # Accepted coins info
             tk.Label(
                 self.payment_window,
@@ -344,23 +356,43 @@ class CartScreen(tk.Frame):
             # Update every 100ms while payment is in progress
             self.after(100, lambda: self.update_payment_status(total_amount))
 
+    def update_change_status(self, message):
+        """Update the change dispensing status display."""
+        if self.change_label:
+            self.change_label.config(text=message)
+            self.change_label.pack()  # Make visible
+            self.payment_window.update()
+
     def complete_payment(self):
-        """Complete the payment process and dispense items"""
+        """Complete the payment process and dispense items & change"""
         if not self.payment_in_progress:
             return
             
         self.payment_in_progress = False
-        received = self.payment_handler.stop_payment_session()
-        change = received - self.payment_required
         
-        # Show success message with change amount
-        messagebox.showinfo(
-            "Payment Complete",
+        # Stop payment session and handle change
+        received, change_dispensed, change_status = self.payment_handler.stop_payment_session(
+            required_amount=self.payment_required
+        )
+        
+        # Show change being dispensed if needed
+        if change_dispensed > 0:
+            self.update_change_status(f"Dispensing change: ₱{change_dispensed:.2f}...")
+            
+        # Show final status
+        status_text = (
             f"Thank you!\n\n"
             f"Amount paid: ₱{received:.2f}\n"
-            f"Change due: ₱{change:.2f}\n\n"
-            f"Your items will now be dispensed."
         )
+        
+        if change_dispensed > 0:
+            status_text += f"Change dispensed: ₱{change_dispensed:.2f}\n"
+            if change_status:
+                status_text += f"{change_status}\n"
+                
+        status_text += "\nYour items will now be dispensed."
+        
+        messagebox.showinfo("Payment Complete", status_text)
         
         # Clean up and return to main screen
         self.payment_window.destroy()

@@ -9,5 +9,16 @@
     "header_logo_path": "",
     "always_fullscreen": true,
     "allow_decorations_for_admin": false,
-    "rotate_display": "right"  
+    "rotate_display": "right",
+    
+    "coin_hoppers": {
+        "one_peso": {
+            "motor_pin": 27,  
+            "sensor_pin": 22   
+        },
+        "five_peso": {
+            "motor_pin": 17,   
+            "sensor_pin": 23   
+        }
+    }
 }
